@@ -70,7 +70,7 @@ label{font-size:.9rem;color:var(--mute)}
   <!-- তালিকা -->
   <section id="list" class="hidden">
     <div class="grid" id="grid"></div>
-    <p id="empty" class="msg ok hidden">এখনো কিছু যোগ করা হয়নি।</p>
+    <p id="empty" class="msg hidden">এখনো কিছু যোগ করা হয়নি।</p>
   </section>
 </main>
 
@@ -117,8 +117,10 @@ async function render(session){
   show("auth", !session); show("bar", !!session); show("list", !!session);
   if(!session){ show("admin", false); isAdmin = false; return; }
   $("who").textContent = session.user.email;
-  const { data } = await sb.from("admins").select("email").limit(1);
+  const { data, error: aerr } = await sb.from("admins").select("email").limit(1);
   isAdmin = !!(data && data.length);
+  if(aerr){ $("empty").textContent = "ডাটাবেস সমস্যা: " + aerr.message + " (setup.sql রান করা হয়েছে কি?)"; show("empty", true); }
+  else if(!isAdmin){ console.log("এই ইমেইল admins টেবিলে নেই"); }
   show("admin", isAdmin);
   loadItems();
 }
@@ -126,7 +128,8 @@ async function render(session){
 async function loadItems(){
   const { data, error } = await sb.from("items").select("*").order("created_at", { ascending:false });
   const grid = $("grid"); grid.replaceChildren();
-  if(error){ return; }
+  if(error){ $("empty").textContent = "তথ্য আনা যায়নি: " + error.message; show("empty", true); return; }
+  $("empty").textContent = "এখনো কিছু যোগ করা হয়নি।";
   show("empty", data.length === 0);
   data.forEach(it => {
     const card = document.createElement("article"); card.className = "item";
